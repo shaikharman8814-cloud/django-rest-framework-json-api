@@ -214,6 +214,18 @@ class DJATestFilters(APITestCase):
             dja_response["errors"][0]["detail"], "invalid query parameter: filter"
         )
 
+    def test_invalid_query_parameter_with_browsable_api_renderer(self):
+        """Invalid query parameters should remain a 400 in the HTML renderer."""
+        self.client.raise_request_exception = False
+        response = self.client.get(
+            self.url, data={"garbage": "value"}, HTTP_ACCEPT="text/html"
+        )
+
+        self.assertEqual(
+            response.status_code, 400, msg=response.content.decode("utf-8")
+        )
+        self.assertIn(b"invalid query parameter: garbage", response.content)
+
     def test_filter_missing_right_bracket(self):
         """
         test for filter missing right bracket
