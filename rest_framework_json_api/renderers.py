@@ -6,6 +6,7 @@ from django.db.models import Manager
 from django.template import loader
 from django.utils.encoding import force_str
 from rest_framework import relations, renderers
+from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SkipField, get_attribute
 from rest_framework.relations import PKOnlyObject
 from rest_framework.serializers import ListSerializer, Serializer
@@ -645,6 +646,16 @@ class BrowsableAPIRenderer(renderers.BrowsableAPIRenderer):
         context["includes_form"] = self.get_includes_form(view)
 
         return context
+
+    def get_filter_form(self, *args, **kwargs):
+        """Avoid rerunning invalid query filters while rendering an error response."""
+        try:
+            return super().get_filter_form(*args, **kwargs)
+        except ValidationError:
+            # QueryParameterValidationFilter already produced the 400 response. The
+            # browsable API asks filter backends for a form while rendering that
+            # response, which would otherwise raise the same error a second time.
+            return ""
 
     @classmethod
     def _get_included_serializers(cls, serializer, prefix="", already_seen=None):
